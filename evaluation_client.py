@@ -22,10 +22,11 @@ serverPort = int(sys.argv[2])
 clientSocket = socket(AF_INET, SOCK_STREAM)
 clientSocket.connect((serverName, serverPort))
 
-message = "hello"
-encrypted_message = encrypt_and_encode_message(message)
-clientSocket.send(f"{len(encrypted_message)}_".encode()) # send in len(encrypted_message)_encrypted_message format
-clientSocket.send(encrypted_message)
-received_message = clientSocket.recv(2048)
-received_message = received_message.decode('utf-8')
-print(received_message)
+while True:
+    message = "hello"
+    encrypted_message = encrypt_and_encode_message(message)
+    clientSocket.send(f"{len(encrypted_message)}_".encode()) # send in len(encrypted_message)_encrypted_message format
+    clientSocket.send(encrypted_message)
+    received_message = clientSocket.recv(2048)
+    received_message = received_message.decode('utf-8')
+    print(received_message)
