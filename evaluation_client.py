@@ -5,8 +5,6 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-# test
-
 def encrypt_and_encode_message(message):        
     secret_key = bytes('i_l0v3_CG4002_:D', 'utf-8')
     iv = Random.new().read(AES.block_size) # Random IV
