@@ -1,3 +1,4 @@
+import sys
 from socket import *
 import base64
 from Crypto import Random
@@ -15,8 +16,8 @@ def encrypt_and_encode_message(message):
 
     return encoded_message
 
-serverName = 'localhost'
-serverPort = int(input("Enter server port: "))
+serverName = sys.argv[1]
+serverPort = int(sys.argv[2])
 
 clientSocket = socket(AF_INET, SOCK_STREAM)
 clientSocket.connect((serverName, serverPort))
