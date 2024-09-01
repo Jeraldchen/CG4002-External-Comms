@@ -6,9 +6,10 @@ class EvaluationClient:
         self.server_name = server_name
         self.server_port = server_port
         self.socket = socket(AF_INET, SOCK_STREAM)
+        self.encryption = AESEncryption()
 
     def send_message(self, message):
-        message = AESEncryption.encrypt_and_encode_message(message)
+        message = self.encryption.encrypt_and_encode_message(message)
         self.socket.send(f"{len(message)}_".encode()) # must split as message is already encoded but "len(message)_" is not encoded
         self.socket.send(message)
 
