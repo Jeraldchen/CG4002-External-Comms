@@ -4,8 +4,8 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
 class AESEncryption:
-    def __init__(self, secret_key):
-        self.secret_key = bytes(secret_key, 'utf-8')
+    def __init__(self):
+        self.secret_key = bytes('i_l0v3_CG4002_:D', 'utf-8')
 
 
     def encrypt_and_encode_message(self, message):
