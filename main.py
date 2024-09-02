@@ -1,8 +1,7 @@
 import json
 import sys
-from encryption import AESEncryption
 from evaluation_client import EvaluationClient
-from player import Player
+from game_state import GameState
 
 if __name__ == "__main__":
     server_name = sys.argv[1]
@@ -11,12 +10,12 @@ if __name__ == "__main__":
     client = EvaluationClient(server_name, server_port)
     client.hello()
 
-    player = Player(1, 100, 6, 2, 30, 0, 3)
+    game_state = GameState()
 
     data = {
-        "player_id": player.player_id,
+        "player_id": game_state.p1.player_id,
         "action": "reload",
-        "game_state": player.get_dict()
+        "game_state": game_state.get_dict()
     }
 
     client.send_message(json.dumps(data))
