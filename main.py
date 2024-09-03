@@ -1,21 +1,42 @@
 import json
-import sys
 from evaluation_client import EvaluationClient
 from game_state import GameState
 
 if __name__ == "__main__":
-    server_name = sys.argv[1]
-    server_port = int(sys.argv[2])
+    server_name = input("Enter server name: ")
+    server_port = int(input("Enter server port: "))
     
     client = EvaluationClient(server_name, server_port)
     client.hello()
 
-    game_state = GameState()
+    while True:
+        try:
+            num_players = int(input("Enter number of players (1 or 2): "))
+            if num_players in [1, 2]:
+                break
+            else:
+                print("Invalid number of players")
+        except ValueError:
+            print("Invalid input. Please enter a number (1 or 2)")
 
-    data = {
-        "player_id": game_state.p1.player_id,
-        "action": "reload",
-        "game_state": game_state.get_dict()
-    }
+    while True:
+        for player in range(num_players):
+            player_id = player + 1
+            game_state = GameState()
+            action = input("Enter action: ")
 
-    client.send_message(json.dumps(data))
+            if action == "exit" or action == "logout":
+                break
+
+            data = {
+                "player_id": player_id,
+                "action": action,
+                "game_state": game_state.get_dict()
+            }
+
+            print(json.dumps(data))
+            client.send_message(json.dumps(data))
+            print(f"Sent message for player {player_id}: {action}") 
+        
+        if action == "exit" or action == "logout":
+            break
