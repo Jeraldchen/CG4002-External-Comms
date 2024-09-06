@@ -1,6 +1,6 @@
 import json
-from evaluation_client import EvaluationClient
-from game_state import GameState
+from evaluation_client.evaluation_client import EvaluationClient
+from evaluation_client.game_state import GameState
 
 if __name__ == "__main__":
     server_name = input("Enter server name: ")
