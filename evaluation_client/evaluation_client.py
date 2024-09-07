@@ -1,5 +1,5 @@
 from socket import *
-from evaluation_client.encryption import AESEncryption
+from encryption import AESEncryption
 
 class EvaluationClient:
     def __init__(self, server_name, server_port):

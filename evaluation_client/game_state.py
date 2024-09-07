@@ -1,4 +1,4 @@
-from evaluation_client.player import Player
+from player import Player
 
 class GameState:
     def __init__(self):
