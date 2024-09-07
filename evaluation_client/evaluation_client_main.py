@@ -39,5 +39,5 @@ if __name__ == "__main__":
             true_game_state = client.receive_message() 
             print(f"True game state from eval server: {true_game_state}")
         
-        if action == "logout":
+        if action == "logout" or action == "exit":
             break
