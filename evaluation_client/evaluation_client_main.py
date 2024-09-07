@@ -25,7 +25,7 @@ if __name__ == "__main__":
             game_state = GameState()
             action = input("Enter action: ")
 
-            if action == "exit" or action == "logout":
+            if action == "exit":
                 break
 
             data = {
@@ -34,9 +34,10 @@ if __name__ == "__main__":
                 "game_state": game_state.get_dict()
             }
 
-            print(json.dumps(data))
             client.send_message(json.dumps(data))
-            print(f"Sent message for player {player_id}: {action}") 
+            print(f"Sent message for player {player_id}: {action}")
+            true_game_state = client.receive_message() 
+            print(f"True game state from eval server: {true_game_state}")
         
-        if action == "exit" or action == "logout":
+        if action == "logout":
             break
