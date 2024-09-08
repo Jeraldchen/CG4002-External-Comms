@@ -1,17 +1,14 @@
 from socket import *
-from evaluation_client.encryption import AESEncryption
 
 class RelayNodeClient:
     def __init__(self, server_name, server_port):
         self.server_name = server_name
         self.server_port = server_port
         self.socket = socket(AF_INET, SOCK_STREAM)
-        self.encryption = AESEncryption()
+        self.socket.connect((self.server_name, self.server_port))
 
     def send_message(self, message):
-        message = self.encryption.encrypt_and_encode_message(message)
-        self.socket.send(f"{len(message)}_".encode()) # must split as message is already encoded but "len(message)_" is not encoded
-        self.socket.send(message)
+        self.socket.send(f"{len(message)}_{message}".encode())
         
     def receive_message(self):
         received_message = self.socket.recv(2048).decode()
