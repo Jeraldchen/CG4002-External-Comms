@@ -10,8 +10,29 @@ class RelayNodeClient:
     def send_message(self, message):
         self.socket.send(f"{len(message)}_{message}".encode())
         
+    # def receive_message(self):
+    #     received_message = self.socket.recv(2048).decode()
+    #     received_message = received_message.split("_", 1)[1] # return the data part of the message
+    #     return received_message
+
     def receive_message(self):
-        received_message = self.socket.recv(2048).decode()
-        received_message = received_message.split("_", 1)[1] # return the data part of the message
-        return received_message
+        data = b'' # receive len followed by _ and then the data
+        while not data.endswith(b'_'):
+            _d = self.socket.recv(1)
+            if not _d:
+                data = b''
+                break
+            data += _d
+        data = data.decode()
+        length = int(data[:-1]) # exclude the last character which is _ to just get the length
+
+        data = b''
+        while len(data) < length:
+            _d = self.socket.recv(length - len(data))
+            if not _d:
+                data = b''
+                break
+            data += _d
+        
+        return data.decode()
         

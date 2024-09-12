@@ -20,15 +20,5 @@ class Player:
 
         self.rain_list = []  # list of quadrants where rain has been started by the bomb of this player
 
-    def get_dict(self):
-        data = dict()
-        data['hp']              = self.hp
-        data['bullets']         = self.num_bullets
-        data['bombs']           = self.num_bombs
-        data['shield_hp']       = self.hp_shield
-        data['deaths']          = self.num_deaths
-        data['shields']         = self.num_shield
-        return data
-
     
     

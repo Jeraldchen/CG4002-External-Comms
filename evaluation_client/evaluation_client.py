@@ -1,5 +1,5 @@
 from socket import *
-from encryption import AESEncryption
+from evaluation_client.encryption import AESEncryption
 
 class EvaluationClient:
     def __init__(self, server_name, server_port):
@@ -16,8 +16,29 @@ class EvaluationClient:
     def hello(self):
         self.socket.connect((self.server_name, self.server_port))
         self.send_message("hello")
-        
+
     def receive_message(self):
-        received_message = self.socket.recv(2048).decode()
-        received_message = received_message.split("_", 1)[1] # return the data part of the message
-        return received_message
+        data = b'' # receive len followed by _ and then the data
+        while not data.endswith(b'_'):
+            _d = self.socket.recv(1)
+            if not _d:
+                data = b''
+                break
+            data += _d
+        data = data.decode()
+        length = int(data[:-1]) # exclude the last character which is _ to just get the length
+
+        data = b''
+        while len(data) < length:
+            _d = self.socket.recv(length - len(data))
+            if not _d:
+                data = b''
+                break
+            data += _d
+        
+        return data.decode()
+
+        
+                
+            
+            
