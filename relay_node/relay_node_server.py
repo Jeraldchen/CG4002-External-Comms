@@ -9,7 +9,7 @@ class RelayNodeServer:
         self.server_socket.listen()
         print('The relay node server is ready to receive messages')
 
-    def run(self, to_ai_queue: Queue, from_ai_queue: Queue):
+    def run(self, to_ai_queue: Queue, from_game_engine: Queue):
         while True:
             connection_socket, client_addr = self.server_socket.accept()
             print('Connection from', client_addr)
@@ -35,7 +35,7 @@ class RelayNodeServer:
                     message = data.decode()
                     to_ai_queue.put(message) # send the message to the AI    
                     print('Received:', message + ' from ' + str(client_addr))
-                    true_game_state = from_ai_queue.get() # get the message from the AI
+                    true_game_state = from_game_engine.get() # get the message from the game engine
                     connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
                     # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation
             except Exception as e:

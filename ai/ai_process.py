@@ -2,7 +2,7 @@ from game_engine.game_state import GameState
 import json
 from multiprocessing import Queue
 
-def ai_process(from_relay_server_queue: Queue, to_eval_server_queue: Queue, from_eval_server_queue: Queue, to_relay_server_queue: Queue):
+def ai_process(from_relay_server_queue: Queue, to_eval_server_queue: Queue):
     game_state = GameState()
     while True:
         data = from_relay_server_queue.get() # get the message from the relay node
