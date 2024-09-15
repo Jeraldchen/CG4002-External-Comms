@@ -23,5 +23,5 @@ class MQTTServer:
 
     def receive_message(self): # receive message from the visualizer
         self.client.on_message = self.on_message
-        self.client.subscribe("detection_state")
+        self.client.subscribe("detection")
         self.client.loop_forever()
