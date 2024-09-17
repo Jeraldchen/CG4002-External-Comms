@@ -1,4 +1,3 @@
-#from multiprocessing import Queue
 from paho.mqtt.client import *
 
 class MQTTServer:

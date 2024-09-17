@@ -1,5 +1,6 @@
 from socket import *
 from multiprocessing import Queue
+from colours.colours import Colours
 
 class RelayNodeServer:
     def __init__(self, server_port):
@@ -34,8 +35,9 @@ class RelayNodeServer:
                         data += _d
                     message = data.decode()
                     to_ai_queue.put(message) # send the message to the AI    
-                    print('Received:', message + ' from ' + str(client_addr))
-                    print('###############################################')
+                    # print('Received:', message + ' from ' + str(client_addr))
+                    print(f"{Colours.CYAN}Received: {message} from {str(client_addr)}{Colours.RESET}")
+                    print(f'{Colours.CYAN}###############################################{Colours.RESET}')
                     true_game_state = from_game_engine.get() # get the message from the game engine
                     connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
                     # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation

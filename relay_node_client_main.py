@@ -1,22 +1,6 @@
-# from relay_node_client import RelayNodeClient
-
-# if __name__ == "__main__":
-#     server_name = input("Enter server name: ")
-#     server_port = int(input("Enter server port: "))
-
-#     client = RelayNodeClient(server_name, server_port)
-
-#     while True:
-#         message = input("Enter action: ")
-#         if message == "exit":
-#             break
-
-#         client.send_message(message)
-#         received_message = client.receive_message()
-#         print(f"Received message: {received_message} from {server_name}:{server_port}")
-
-from relay_node_client import RelayNodeClient
+from relay_node.relay_node_client import RelayNodeClient
 import json
+from colours.colours import Colours
 
 if __name__ == "__main__":
     server_name = input("Enter server name: ")
@@ -48,11 +32,11 @@ if __name__ == "__main__":
             }
 
             client.send_message(json.dumps(data))
-            print(f"Sent message for player {player_id}: {action}")
-            print("###############################################")
+            print(f"{Colours.CYAN}Sent message for player {player_id}: {action}{Colours.RESET}")
+            print(f"{Colours.CYAN}###############################################{Colours.RESET}")
             true_game_state = client.receive_message()
-            print(f"True game state: {true_game_state}")
-            print("###############################################")
+            print(f"{Colours.MAGENTA}True game state: {true_game_state}{Colours.RESET}")
+            print(f"{Colours.MAGENTA}###############################################{Colours.RESET}")
         
         if action == "logout" or action == "exit":
             break
