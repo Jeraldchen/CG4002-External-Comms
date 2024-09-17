@@ -35,6 +35,7 @@ class RelayNodeServer:
                     message = data.decode()
                     to_ai_queue.put(message) # send the message to the AI    
                     print('Received:', message + ' from ' + str(client_addr))
+                    print('###############################################')
                     true_game_state = from_game_engine.get() # get the message from the game engine
                     connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
                     # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation

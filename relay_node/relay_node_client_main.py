@@ -49,8 +49,10 @@ if __name__ == "__main__":
 
             client.send_message(json.dumps(data))
             print(f"Sent message for player {player_id}: {action}")
+            print("###############################################")
             true_game_state = client.receive_message()
             print(f"True game state: {true_game_state}")
+            print("###############################################")
         
         if action == "logout" or action == "exit":
             break
