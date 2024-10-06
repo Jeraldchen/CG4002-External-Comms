@@ -1,8 +1,11 @@
 from paho.mqtt.client import *
+from multiprocessing import Queue
 
 class MQTTServer:
-    def __init__(self):
+    def __init__(self, mqtt_subscribe_queue: Queue):
         self.message_payload = None
+        self.mqtt_subscribe_queue = mqtt_subscribe_queue
+
 
     def connect_mqtt(self):
         def on_connect(client, userdata, flags, rc):
@@ -18,9 +21,10 @@ class MQTTServer:
     
     def on_message(self, client, userdata, message):
         self.message_payload = message.payload.decode()
-        print(self.message_payload)
+        self.mqtt_subscribe_queue.put(self.message_payload) # put detection state and num of rain bombs data from visualizer to the queue
+        # print(self.message_payload)
 
-    def receive_message(self): # receive message from the visualizer
+    def run(self, topic): # receive message from the visualizer
         self.client.on_message = self.on_message
-        self.client.subscribe("detection")
+        self.client.subscribe(topic)
         self.client.loop_forever()

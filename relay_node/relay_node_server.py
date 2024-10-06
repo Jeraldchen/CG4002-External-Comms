@@ -1,6 +1,8 @@
 from socket import *
 from multiprocessing import Queue
 from colours.colours import Colours
+from mqtt.mqtt_client import MQTTClient
+import json
 
 class RelayNodeServer:
     def __init__(self, server_port):
@@ -9,6 +11,7 @@ class RelayNodeServer:
         self.server_socket.bind(('', server_port))
         self.server_socket.listen()
         print('The relay node server is ready to receive messages')
+        self.client = MQTTClient()
 
     def run(self, to_ai_queue: Queue, from_game_engine: Queue):
         while True:
@@ -34,7 +37,12 @@ class RelayNodeServer:
                             break
                         data += _d
                     message = data.decode()
-                    to_ai_queue.put(message) # send the message to the AI    
+                    message_json = json.loads(message)
+
+                    if message_json["packet_type"] == "M":
+                        to_ai_queue.put(message_json) # send the message to the AI queue
+                        continue
+                       
                     # print('Received:', message + ' from ' + str(client_addr))
                     print(f"{Colours.CYAN}Received: {message} from {str(client_addr)}{Colours.RESET}")
                     print(f'{Colours.CYAN}###############################################{Colours.RESET}')
@@ -45,3 +53,8 @@ class RelayNodeServer:
                 print('Error:', e)
                 connection_socket.close()
                 break
+
+    def send_to_AI(self, to_ai_queue: Queue):
+        while True:
+            message = to_ai_queue.get()
+            self.client.send_message("IMU",message)
