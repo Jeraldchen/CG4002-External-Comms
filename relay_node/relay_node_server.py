@@ -46,7 +46,12 @@ class RelayNodeServer:
                     # print('Received:', message + ' from ' + str(client_addr))
                     print(f"{Colours.CYAN}Received: {message} from {str(client_addr)}{Colours.RESET}")
                     print(f'{Colours.CYAN}###############################################{Colours.RESET}')
-                    true_game_state = from_eval_server.get() # get the message from the game engine
+                    try:
+                        true_game_state = from_eval_server.get() # get the message from the game engine
+                    except Exception as e:
+                        print(f"Error while getting message from eval server queue: {e}")
+                        break
+
                     connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
                     # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation
             except Exception as e:
