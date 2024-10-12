@@ -1,5 +1,5 @@
 from socket import *
-from multiprocessing import Queue
+from multiprocessing import *
 from colours.colours import Colours
 import json
 
@@ -7,6 +7,7 @@ class RelayNodeServer:
     def __init__(self, server_port):
         self.server_port = server_port
         self.server_socket = socket(AF_INET, SOCK_STREAM)
+        self.server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # Allow address reuse
         self.server_socket.bind(('', server_port))
         self.server_socket.listen()
         print('The relay node server is ready to receive messages')
@@ -32,9 +33,8 @@ class RelayNodeServer:
 
         return data
 
-    def run(self, to_ai_queue: Queue, from_eval_server: Queue):
+    def handle_client(self, connection_socket, client_addr, to_ai_queue: Queue, from_eval_server: Queue):
         while True:
-            connection_socket, client_addr = self.server_socket.accept()
             print('Connection from', client_addr)
             try:
                 while True: # receive messages from the client
@@ -56,5 +56,13 @@ class RelayNodeServer:
                     # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation
             except Exception as e:
                 print('Error:', e)
+            finally:
                 connection_socket.close()
-                break
+                print(f"Connection closed from {client_addr}")
+    
+    def run(self, to_ai_queue: Queue, from_eval_server: Queue):
+        while True:
+            connection_socket, client_addr = self.server_socket.accept()
+            client_process = Process(target=self.handle_client, args=(connection_socket, client_addr, to_ai_queue, from_eval_server))
+            client_process.start()
+                
