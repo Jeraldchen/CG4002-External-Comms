@@ -20,7 +20,7 @@ if __name__ == '__main__':
     
 
     # Create processes
-    relay_node_server = Process(target=relay_node_server_process, args=(relay_to_ai_queue, eval_to_relay_queue, 8080)) # send IMU to AI and send true game state to internal comms
+    relay_node_server = Process(target=relay_node_server_process, args=(relay_to_ai_queue, eval_to_relay_queue, 8800)) # send IMU to AI and send true game state to internal comms
     mqtt_client_ai_to_visualiser = Process(target=mqtt_client_process, args=("ai/action", ai_to_visualiser_queue)) # send action to visualiser
     mqtt_client_eval_to_visualiser = Process(target=mqtt_client_process, args=("eval/game_state", eval_to_visualiser_queue)) # send true game state to visualiser
     mqtt_server_visualiser_to_eval = Process(target=mqtt_server_process, args=("ai/game_state", visualiser_to_eval_queue)) # get ai predicted game state and send to eval server

@@ -61,8 +61,12 @@ class RelayNodeServer:
                 print(f"Connection closed from {client_addr}")
     
     def run(self, to_ai_queue: Queue, from_eval_server: Queue):
-        while True:
-            connection_socket, client_addr = self.server_socket.accept()
-            client_process = Process(target=self.handle_client, args=(connection_socket, client_addr, to_ai_queue, from_eval_server))
-            client_process.start()
+        try:
+            while True:
+                connection_socket, client_addr = self.server_socket.accept()
+                client_process = Process(target=self.handle_client, args=(connection_socket, client_addr, to_ai_queue, from_eval_server))
+                client_process.start()
+        except KeyboardInterrupt:
+            print('Server shutting down')
+            self.server_socket.close()
                 
