@@ -33,7 +33,7 @@ class RelayNodeServer:
 
         return data
 
-    def handle_client(self, connection_socket, client_addr, to_ai_queue: Queue, from_eval_server: Queue):
+    def handle_client(self, connection_socket, client_addr, to_ai_queue: Queue, from_eval_server: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
         while True:
             print('Connection from', client_addr)
             try:
@@ -42,7 +42,13 @@ class RelayNodeServer:
                     message = data.decode()
                     message_json = json.loads(message)
                     if message_json["packet_type"] == "M":
-                        to_ai_queue.put(message_json) # send the IMU data packet to the AI   
+                        to_ai_queue.put(message_json) # send the IMU data packet to the AI
+                    elif message_json["packet_type"] == "T":
+                        shoot_action_queue.put(message_json) # send the shoot action packet to the AI   
+                    elif message_json["packet_type"] == "I":
+                        got_shot_queue.put(message_json)
+                    else: # packet H
+                        continue
                     # print('Received:', message + ' from ' + str(client_addr))
                     print(f"{Colours.CYAN}Received: {message} from {str(client_addr)}{Colours.RESET}")
                     print(f'{Colours.CYAN}###############################################{Colours.RESET}')
@@ -60,11 +66,11 @@ class RelayNodeServer:
                 connection_socket.close()
                 print(f"Connection closed from {client_addr}")
     
-    def run(self, to_ai_queue: Queue, from_eval_server: Queue):
+    def run(self, to_ai_queue: Queue, from_eval_server: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
         try:
             while True:
                 connection_socket, client_addr = self.server_socket.accept()
-                client_process = Process(target=self.handle_client, args=(connection_socket, client_addr, to_ai_queue, from_eval_server))
+                client_process = Process(target=self.handle_client, args=(connection_socket, client_addr, to_ai_queue, from_eval_server, shoot_action_queue, got_shot_queue))
                 client_process.start()
         except KeyboardInterrupt:
             print('Server shutting down')
