@@ -19,5 +19,6 @@ class MQTTClient:
         return self.client
 
     def send_message(self, topic, message):
+        message = message.encode('utf-8')
         self.client.publish(topic, message) # send the message to the visualiser
         
