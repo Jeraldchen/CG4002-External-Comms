@@ -1,24 +1,9 @@
-from game_engine.game_state import GameState
-import json
 from multiprocessing import Queue
+from ai.overlay import ActionClassifier
 
-def ai_process(from_relay_server_queue: Queue, to_eval_server_queue: Queue, action_queue: Queue):
-    game_state = GameState()
-    while True:
-        data = from_relay_server_queue.get() # get the message from the relay node
-        data = json.loads(data)
-        player_id = data["player_id"]
-        action = data["action"]
-
-        data_to_send = {
-            "player_id": player_id,
-            "action": action,
-            "game_state": game_state.get_dict()
-        }
-
-        to_eval_server_queue.put(json.dumps(data_to_send)) # send to eval client
-        action_queue.put(json.dumps(data_to_send)) # send to mqtt client
-        
-
+def ai_process(to_ai_queue: Queue, ai_action_queue: Queue):
+  clf = ActionClassifier(to_ai_queue, ai_action_queue)
+  while True:
+    clf.perform_inference_from_json()
 
         
