@@ -64,7 +64,11 @@ class RelayNodeServer:
                 except Exception as e:
                     print('Error:', e)
                 finally:
-                    connection_socket.close()
+                    try:
+                        connection_socket.close()
+                        return
+                    except Exception as e:
+                        print(f"Error closing connection: {e}")
                     print(f"Connection closed from {client_addr}")
         elif self.server_port == 8801:
             while True:
@@ -82,8 +86,12 @@ class RelayNodeServer:
                 except Exception as e:
                     print('Error:', e)
                 finally:
-                    connection_socket.close()
-                    print(f"Connection closed from {client_addr}")
+                    try:
+                        connection_socket.close()
+                        return
+                    except Exception as e:
+                        print(f"Error closing connection: {e}")
+        
     
     def run(self, to_ai_queue: Queue, from_eval_server: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
         try:

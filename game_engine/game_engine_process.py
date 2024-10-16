@@ -11,18 +11,23 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             shoot_action = None
             got_shot = None
 
-            # mqtt_request_detection = {
-            #     "topic": "visualiser/request_detection",
-            #     "request": "true"
-            # }
-            # mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
-            # can_see = mqtt_subscribe_queue.get() # get the can_see from the visualiser
-            # if can_see == "true":
-            #     can_see = True
-            # else:
-            #     can_see = False
+            mqtt_request_detection = {
+                "topic": "visualiser/request_detection",
+                "request": "true"
+            }
+        
             try:
                 ai_message = ai_action_queue.get(timeout=0.1)
+                mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
+                try:
+                    can_see = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
+                except Exception:
+                    can_see = "true"
+
+                if can_see == "true":
+                    can_see = True
+                else:
+                    can_see = False
                 print(ai_message)
                 player_id = ai_message['player_id']
                 if player_id == 1:
@@ -37,7 +42,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 if action == "no action":
                     send_to_relay_node_queue_player1.put(ai_message)
                     send_to_relay_node_queue_player2.put(ai_message)
-                    # ai_game_state_send_to_eval_server_queue.put(json.dumps(ai_predicted_data)) # send the predicted game state to the eval server
+                    continue
 
                 
                 if action == "bomb":
@@ -73,14 +78,14 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 send_to_relay_node_queue_player1.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
                 send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
 
-                # mqtt_publish_queue.put(json.dumps(true_data))
+                mqtt_publish_queue.put(json.dumps(true_data))
 
                 if action == "logout":
                     break
             except:
                 # print("fail")
                 pass
-            # ai_message = json.loads(ai_message)
+            
             
 
         except Exception as e:
@@ -148,7 +153,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         send_to_relay_node_queue_player1.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
         send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
 
-        # mqtt_publish_queue.put(json.dumps(true_data))
+        mqtt_publish_queue.put(json.dumps(true_data))
 
 
 
