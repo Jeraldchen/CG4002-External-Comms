@@ -5,6 +5,7 @@ from multiprocessing import Queue
 def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, ai_action_queue: Queue, ai_game_state_send_to_eval_server_queue: Queue, send_to_relay_node_queue_player1: Queue, send_to_relay_node_queue_player2: Queue, true_game_state_from_eval_server_queue: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
     game_state = GameState()
     bomb_thrown_count = 0
+    action_count = 0
     while True:
         try: # non shoot actions
             can_see = True
@@ -39,7 +40,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 action = ai_message['action']
                 attacker.rain_damage(opponent, bomb_thrown_count, can_see)
             
-                if action == "no action":
+                if action == "no action" or (action == "logout" and action_count < 21):
                     send_to_relay_node_queue_player1.put(ai_message)
                     send_to_relay_node_queue_player2.put(ai_message)
                     continue
@@ -79,9 +80,12 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
 
                 mqtt_publish_queue.put(json.dumps(true_data))
-
+                action_count += 1
                 if action == "logout":
-                    break
+                    if action_count >= 21:
+                        break
+                    else:
+                        continue
             except:
                 # print("fail")
                 pass
@@ -94,7 +98,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         try:
             shoot_action = shoot_action_queue.get(timeout=0.1)
         except Exception as e:
-            print(f"Error while getting shoot action: {e}")
+            # print(f"Error while getting shoot action: {e}")
             continue
         
         # try:
@@ -129,9 +133,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             "topic": "ai/data"
         }
 
-        print("-2")
         print(game_state.get_dict())
-        print("-1")
 
         ai_game_state_send_to_eval_server_queue.put(json.dumps(ai_predicted_data)) # send the predicted game state to the eval server
         # mqtt_publish_queue.put(json.dumps(ai_predicted_data)) # send the predicted game data to the visualiser first
@@ -154,6 +156,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
 
         mqtt_publish_queue.put(json.dumps(true_data))
+        action_count += 1
 
 
 
