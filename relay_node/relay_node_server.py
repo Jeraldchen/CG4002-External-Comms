@@ -97,7 +97,9 @@ class RelayNodeServer:
                 try:
                     while True: # receive messages from the client
                         try:
-                            ai_action = from_ai_queue.get() # get the message from the game engine
+                            ai_action = to_ai_queue.get() # get the message from the game engine
+                            print(json.dumps(ai_action))
+                            ai_action = json.dumps(ai_action)
                             connection_socket.send(f"{len(ai_action)}_{ai_action}".encode()) # send the message back to the relay client
                         except Exception as e:
                             print(f"Error while getting message from AI queue: {e}")

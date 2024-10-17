@@ -40,7 +40,7 @@ class GameState:
         """use the user sent action to alter the game state"""
 
         # perform sanity check to see if our function handles all the actions
-        all_actions = {"gun", "shield", "bomb", "reload", "basket", "soccer", "volley", "bowl"}
+        # all_actions = {"gun", "shield", "bomb", "reload", "basket", "soccer", "volley", "bowl"}
 
         if player_id == 1:
             attacker            = self.player_1
