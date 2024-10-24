@@ -144,12 +144,12 @@ class ActionClassifier():
     print("Execution time: ", execution_time, "s")
     print("Prediction: ", predicted_output)
     print("Action: ", self.all_actions[f"{predicted_output}"])
-    if int(predicted_output) != 0:
-      json_sendback = {
-        "player_id": player_id,
-        "action": self.all_actions[f"{predicted_output}"]
-      }
-      self.ai_action_queue.put(json_sendback)
+    # if int(predicted_output) != 0:
+    json_sendback = {
+      "player_id": player_id,
+      "action": self.all_actions[f"{predicted_output}"]
+    }
+    self.ai_action_queue.put(json_sendback)
 
   def perform_inference_from_json_multiple(self, file):
     start_time = time.time()
