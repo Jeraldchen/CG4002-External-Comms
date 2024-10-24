@@ -40,7 +40,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 action = ai_message['action']
                 attacker.rain_damage(opponent, bomb_thrown_count, can_see)
             
-                if action == "no action" or (action == "logout" and action_count < 22):
+                if action == "no action" or (action == "logout" and action_count < 21):
                     send_to_relay_node_queue_player1.put(json.dumps(ai_message))
                     send_to_relay_node_queue_player2.put(json.dumps(ai_message))
                     continue

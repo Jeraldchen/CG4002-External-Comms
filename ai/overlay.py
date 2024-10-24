@@ -11,7 +11,6 @@ import json
 INPUT_SIZE = 60
 
 def median(data):
-
   data = np.array(data) 
   return float(np.median(data))  # Ensure the return type is float
 
@@ -37,13 +36,13 @@ def zero_crossing_rate(data):
 
 
 class ActionClassifier():
-  def __init__(self):
+  def __init__(self, queue1, queue2):
     PL.reset()
     load_start = time.time()
     self.all_actions = {"0": "no action", "1": "shield", "2": "bomb", "3": "reload", "4": "basket", "5": "soccer", "6": "volley", "7": "bowl", "8": "logout"}
-    # self.to_ai_queue = queue1
-    # self.ai_action_queue = queue2
-    self.ol = Overlay('finalpls.bit')
+    self.to_ai_queue = queue1
+    self.ai_action_queue = queue2
+    self.ol = Overlay('ai/fresh_start_2.bit')
     self.dma = self.ol.axi_dma_0
     self.nn = self.ol.predict_0
     self.nn.write(0x00, 0x81) # start and auto restart
@@ -57,55 +56,36 @@ class ActionClassifier():
     print(f"Loading time: {(load_end - load_start):.4f}s")
 
   def process_data(self,json_packet):
-    imu_data = json_packet["imu_data"]
+    imu_data = np.array(json_packet["imu_data"])
+    sensor_data = imu_data.T
+
 
     features = []
-    single_action = [[] for _ in range(12)]
     # Iterate over each sensor's data (each row in imu_data)
-    for sensor_data in imu_data:
-      # print(len(sensor_data))
-      for i, value in enumerate(sensor_data):
-        single_action[i].append(value)
-    for sensor in single_action:
-      # Compute the features
-      sensor_iqr = iqr(sensor)
-      sensor_median = median(sensor)
-      first_quarter_mean = mean_first_quarter(sensor)
-      second_quarter_mean = mean_second_quarter(sensor)
-      zcr = zero_crossing_rate(sensor)
+    scaling_params = np.load('ai/scaling_params_new.npy', allow_pickle=True).item()
+    sensor_index = 0
 
+    for sensor in sensor_data:
+      # Retrieve min and max values for this sensor
+      min_val = scaling_params[f'sensor_{sensor_index}']['min']
+      max_val = scaling_params[f'sensor_{sensor_index}']['max']
+      sensor_index += 1
+
+      # Apply min-max normalization
+      scaled_sensor_data = (sensor - min_val) / (max_val - min_val)
+      
       # Append the features for this sensor
-      # features.extend(sensor_median, sensor_iqr, first_quarter_mean, second_quarter_mean, zcr)
-      features.append(sensor_median)
-      features.append(sensor_iqr)
-      features.append(first_quarter_mean)
-      features.append(second_quarter_mean)
-      features.append(zcr)
+      features.append(median(scaled_sensor_data))
+      features.append(iqr(scaled_sensor_data))
+      features.append(mean_first_quarter(scaled_sensor_data))
+      features.append(mean_second_quarter(scaled_sensor_data))
+      features.append(zero_crossing_rate(scaled_sensor_data))
 
-    # print(len(features))
+    print(len(features))
 
     return features
 
   # def process_data(self,json_packet):
-  #   imu_data = np.array(json_packet["imu_data"])  # Convert to NumPy array
-  #   print(imu_data.shape)
-  #   print(imu_data)
-  #   features = []
-
-  #   # Extract features column-wise for each of the 12 sensors
-  #   for i in range(12):  # Assuming there are 12 sensors
-  #       sensor_data = imu_data[:, i]  # Extract the i-th column (sensor readings)
-
-  #       # Calculate features
-  #       features.append(median(sensor_data))
-  #       features.append(iqr(sensor_data))
-  #       features.append(mean_first_quarter(sensor_data))
-  #       features.append(mean_second_quarter(sensor_data))
-  #       features.append(zero_crossing_rate(sensor_data))
-
-  #   return features
-
-  # def process_data(self, json_packet):
   #   imu_data = json_packet["imu_data"]
 
   #   features = []
@@ -124,7 +104,14 @@ class ActionClassifier():
   #     zcr = zero_crossing_rate(sensor)
 
   #     # Append the features for this sensor
-  #     features.extend([sensor_median,sensor_iqr, first_quarter_mean, second_quarter_mean, zcr])
+  #     # features.extend(sensor_median, sensor_iqr, first_quarter_mean, second_quarter_mean, zcr)
+  #     features.append(sensor_median)
+  #     features.append(sensor_iqr)
+  #     features.append(first_quarter_mean)
+  #     features.append(second_quarter_mean)
+  #     features.append(zcr)
+
+  #   # print(len(features))
 
   #   return features
 
@@ -190,7 +177,7 @@ class ActionClassifier():
     print(f"Accuracy: {100.0 * (correct_predictions)/total_predictions}%")
     print(f"No. of wrong predictions: {total_predictions - correct_predictions} out of {total_predictions}")
 
-if __name__ == "__main__":
-  clf = ActionClassifier()
-  clf.perform_inference_from_json_multiple('test_all.json')
+# if __name__ == "__main__":
+#   clf = ActionClassifier()
+#   clf.perform_inference_from_json_multiple('test_all.json')
 
