@@ -82,7 +82,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 mqtt_publish_queue.put(json.dumps(true_data))
                 action_count += 1
                 if action == "logout":
-                    if action_count >= 21:
+                    if action_count >= 40:
                         break
                     else:
                         continue
