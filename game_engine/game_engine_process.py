@@ -1,6 +1,7 @@
 from game_engine.game_state import GameState
 import json
 from multiprocessing import Queue
+import time
 
 def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, ai_action_queue: Queue, ai_game_state_send_to_eval_server_queue: Queue, 
                         send_to_relay_node_queue_player1: Queue, send_to_relay_node_queue_player2: Queue, send_to_relay_node_queue_player1_dupe: Queue, send_to_relay_node_queue_player2_dupe: Queue, 
@@ -9,6 +10,9 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
     game_state = GameState()
     # bomb_thrown_count = 0
     action_count = 0
+    player1_count = 0
+    player2_count = 0
+    start_time = time.time()
 
     mqtt_request_detection = {
         "topic": "visualiser/request_detection",
@@ -21,6 +25,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             shoot_action = None
             num_of_rain = 0
             # got_shot = None
+
+            if (time.time() - start_time > 60):
+                start_time = time.time()
+                max_count = max(player1_count, player2_count)
+                action_count = max_count * 2
+                player1_count = max_count
+                player2_count = max_count
         
             try:
                 ai_message = ai_action_queue.get(timeout=0.1)
@@ -50,6 +61,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     opponent = game_state.player_1 
 
                 action = ai_message['action']
+
+                if (player_id == 1 and player1_count > player2_count):
+                    send_to_relay_node_queue_player1.put(json.dumps({"action": "no_action"}))
+                    continue
+                elif (player_id == 2 and player2_count > player1_count):
+                    send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
+                    continue
                 
                 if action == "no action" or (action == "logout" and action_count < 20):
                     if (player_id == 1):
@@ -93,14 +111,19 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 print(game_state.get_dict())
 
                 if (player_id == 1):
-                        send_to_relay_node_queue_player1.put(json.dumps(true_data))
-                        send_to_relay_node_queue_player2_dupe.put(json.dumps(true_data))
+                    send_to_relay_node_queue_player1.put(json.dumps(true_data))
+                    send_to_relay_node_queue_player2_dupe.put(json.dumps(true_data))
                 elif (player_id == 2):
                     send_to_relay_node_queue_player2.put(json.dumps(true_data))
                     send_to_relay_node_queue_player1_dupe.put(json.dumps(true_data))
 
                 mqtt_publish_queue.put(json.dumps(true_data))
                 action_count += 1
+                start_time = time.time()
+                if (player_id == 1):
+                    player1_count += 1
+                elif (player_id == 2):
+                    player2_count += 1
 
                 # if action == "logout":
                 #     if action_count >= 40:
@@ -135,9 +158,18 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     opponent = game_state.player_2
             else :
                 attacker = game_state.player_2
-                opponent = game_state.player_1 
-            game_state.perform_action(action, player_id, can_see)
-            attacker.rain_damage(opponent, num_of_rain, can_see)
+                opponent = game_state.player_1
+
+        if (player_id == 1 and player1_count > player2_count):
+            send_to_relay_node_queue_player1.put(json.dumps({"action": "no_action"}))
+            continue
+        elif (player_id == 2 and player2_count > player1_count):
+            send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
+            continue
+
+
+        game_state.perform_action(action, player_id, can_see)
+        attacker.rain_damage(opponent, num_of_rain, can_see)
 
 
         
@@ -189,6 +221,11 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
 
         mqtt_publish_queue.put(json.dumps(true_data))
         action_count += 1
+        start_time = time.time()
+        if (player_id == 1):
+            player1_count += 1
+        elif (player_id == 2):
+            player2_count += 1
 
 
 
