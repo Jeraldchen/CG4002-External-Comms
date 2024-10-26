@@ -34,7 +34,7 @@ class RelayNodeServer:
         return data
 
     def handle_client(self, connection_socket, client_addr, to_ai_queue: Queue, from_eval_server: Queue, shoot_action_queue: Queue, got_shot_queue: Queue, from_ai_queue: Queue):
-        if self.server_port == 8800:
+        if self.server_port == 8800 or self.server_port == 8801:
             while True:
                 print('Connection from', client_addr)
                 try:
@@ -70,7 +70,7 @@ class RelayNodeServer:
                     except Exception as e:
                         print(f"Error closing connection: {e}")
                     print(f"Connection closed from {client_addr}")
-        elif self.server_port == 8801:
+        elif self.server_port == 8802 or self.server_port == 8803:
             while True:
                 print('Connection from', client_addr)
                 try:
@@ -82,35 +82,6 @@ class RelayNodeServer:
                             break
 
                         connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
-                        # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation
-                except Exception as e:
-                    print('Error:', e)
-                finally:
-                    try:
-                        connection_socket.close()
-                        return
-                    except Exception as e:
-                        print(f"Error closing connection: {e}")
-        elif self.server_port == 8802:
-            while True:
-                print('Connection from', client_addr)
-                try:
-                    while True: # receive messages from the client
-                        try:
-                            ai_action = to_ai_queue.get() # get the message from the game engine
-                            print(json.dumps(ai_action))
-                            ai_action = json.dumps(ai_action)
-                            connection_socket.send(f"{len(ai_action)}_{ai_action}".encode()) # send the message back to the relay client
-                        except Exception as e:
-                            print(f"Error while getting message from AI queue: {e}")
-                            break
-
-                        data = self.receive_message(connection_socket)
-                        message = data.decode()
-                        message_json = json.loads(message)
-                        from_ai_queue.put(message_json)
-
-                        # connection_socket.send(f"{len(true_game_state)}_{true_game_state}".encode()) # send the message back to the relay client
                         # connection_socket.send(f"{len(message)}_{message}".encode()) # send the message back to the client for confirmation
                 except Exception as e:
                     print('Error:', e)

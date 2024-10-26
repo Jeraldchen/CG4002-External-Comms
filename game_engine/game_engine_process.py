@@ -2,20 +2,25 @@ from game_engine.game_state import GameState
 import json
 from multiprocessing import Queue
 
-def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, ai_action_queue: Queue, ai_game_state_send_to_eval_server_queue: Queue, send_to_relay_node_queue_player1: Queue, send_to_relay_node_queue_player2: Queue, true_game_state_from_eval_server_queue: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
+def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, ai_action_queue: Queue, ai_game_state_send_to_eval_server_queue: Queue, 
+                        send_to_relay_node_queue_player1: Queue, send_to_relay_node_queue_player2: Queue, send_to_relay_node_queue_player1_dupe: Queue, send_to_relay_node_queue_player2_dupe: Queue, 
+                        true_game_state_from_eval_server_queue: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
+    
     game_state = GameState()
     # bomb_thrown_count = 0
     action_count = 0
+
+    mqtt_request_detection = {
+        "topic": "visualiser/request_detection",
+        "request": "true"
+    }
+
     while True:
         try: # non shoot actions
             can_see = True
             shoot_action = None
+            num_of_rain = 0
             # got_shot = None
-
-            mqtt_request_detection = {
-                "topic": "visualiser/request_detection",
-                "request": "true"
-            }
         
             try:
                 ai_message = ai_action_queue.get(timeout=0.1)
@@ -46,9 +51,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
 
                 action = ai_message['action']
                 
-                if action == "no action" or (action == "logout" and action_count < 40):
-                    send_to_relay_node_queue_player1.put(json.dumps(ai_message))
-                    send_to_relay_node_queue_player2.put(json.dumps(ai_message))
+                if action == "no action" or (action == "logout" and action_count < 20):
+                    if (player_id == 1):
+                        send_to_relay_node_queue_player1.put(json.dumps(ai_message))
+                        send_to_relay_node_queue_player2_dupe.put(json.dumps(ai_message))
+                    elif (player_id == 2):
+                        send_to_relay_node_queue_player2.put(json.dumps(ai_message))
+                        send_to_relay_node_queue_player1_dupe.put(json.dumps(ai_message))
                     continue
 
                 attacker.rain_damage(opponent, num_of_rain, can_see)
@@ -83,8 +92,12 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
 
                 print(game_state.get_dict())
 
-                send_to_relay_node_queue_player1.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
-                send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
+                if (player_id == 1):
+                        send_to_relay_node_queue_player1.put(json.dumps(true_data))
+                        send_to_relay_node_queue_player2_dupe.put(json.dumps(true_data))
+                elif (player_id == 2):
+                    send_to_relay_node_queue_player2.put(json.dumps(true_data))
+                    send_to_relay_node_queue_player1_dupe.put(json.dumps(true_data))
 
                 mqtt_publish_queue.put(json.dumps(true_data))
                 action_count += 1
@@ -167,8 +180,12 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
 
         print(game_state.get_dict())
 
-        send_to_relay_node_queue_player1.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
-        send_to_relay_node_queue_player2.put(json.dumps(true_data)) # send the true game state to the relay node (hardware side)
+        if (player_id == 1):
+            send_to_relay_node_queue_player1.put(json.dumps(true_data))
+            send_to_relay_node_queue_player2_dupe.put(json.dumps(true_data))
+        elif (player_id == 2):
+            send_to_relay_node_queue_player2.put(json.dumps(true_data))
+            send_to_relay_node_queue_player1_dupe.put(json.dumps(true_data))
 
         mqtt_publish_queue.put(json.dumps(true_data))
         action_count += 1
