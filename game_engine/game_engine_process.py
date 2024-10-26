@@ -4,13 +4,13 @@ from multiprocessing import Queue
 
 def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, ai_action_queue: Queue, ai_game_state_send_to_eval_server_queue: Queue, send_to_relay_node_queue_player1: Queue, send_to_relay_node_queue_player2: Queue, true_game_state_from_eval_server_queue: Queue, shoot_action_queue: Queue, got_shot_queue: Queue):
     game_state = GameState()
-    bomb_thrown_count = 0
+    # bomb_thrown_count = 0
     action_count = 0
     while True:
         try: # non shoot actions
             can_see = True
             shoot_action = None
-            got_shot = None
+            # got_shot = None
 
             mqtt_request_detection = {
                 "topic": "visualiser/request_detection",
@@ -20,8 +20,12 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             try:
                 ai_message = ai_action_queue.get(timeout=0.1)
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
+                
                 try:
-                    can_see = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
+                    message = mqtt_subscribe_queue.get(timeout=0.1) # get the can_see from the visualiser
+                    message = json.loads(message.decode())  
+                    can_see = message['detection']
+                    num_of_rain = message['num_of_rain']
                 except Exception:
                     can_see = "true"
 
@@ -29,27 +33,30 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     can_see = True
                 else:
                     can_see = False
+
                 print(ai_message)
                 player_id = ai_message['player_id']
+
                 if player_id == 1:
                     attacker = game_state.player_1
                     opponent = game_state.player_2
                 else :
                     attacker = game_state.player_2
                     opponent = game_state.player_1 
+
                 action = ai_message['action']
                 
-                if action == "no action" or (action == "logout" and action_count < 20):
+                if action == "no action" or (action == "logout" and action_count < 40):
                     send_to_relay_node_queue_player1.put(json.dumps(ai_message))
                     send_to_relay_node_queue_player2.put(json.dumps(ai_message))
                     continue
 
-                attacker.rain_damage(opponent, bomb_thrown_count, can_see)
+                attacker.rain_damage(opponent, num_of_rain, can_see)
 
                 
-                if action == "bomb":
-                    if attacker.num_bombs > 0:
-                        bomb_thrown_count += 1
+                # if action == "bomb":
+                #     if attacker.num_bombs > 0:
+                #         bomb_thrown_count += 1
 
                 game_state.perform_action(action, player_id, can_see)
                 
@@ -81,11 +88,12 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
 
                 mqtt_publish_queue.put(json.dumps(true_data))
                 action_count += 1
-                if action == "logout":
-                    if action_count >= 40:
-                        break
-                    else:
-                        continue
+
+                # if action == "logout":
+                #     if action_count >= 40:
+                #         break
+                #     else:
+                #         continue
             except:
                 # print("fail")
                 pass
@@ -115,8 +123,8 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             else :
                 attacker = game_state.player_2
                 opponent = game_state.player_1 
-            game_state.perform_action(action, player_id, True)
-            attacker.rain_damage(opponent, bomb_thrown_count, can_see)
+            game_state.perform_action(action, player_id, can_see)
+            attacker.rain_damage(opponent, num_of_rain, can_see)
 
 
         
