@@ -154,6 +154,20 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         if shoot_action: # packet T
             action = "gun"
             player_id = shoot_action['player_id']
+            mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
+            try:
+                message = mqtt_subscribe_queue.get(timeout=0.1) # get the can_see from the visualiser
+                message = json.loads(message)
+                can_see = message['detection']
+                num_of_rain = message['num_of_rain']
+            except Exception:
+                can_see = "true"
+
+            if can_see == "true":
+                can_see = True
+            else:
+                can_see = False
+                
             if player_id == 1:
                     attacker = game_state.player_1
                     opponent = game_state.player_2
