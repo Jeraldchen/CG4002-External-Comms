@@ -35,7 +35,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 player2_count = max_count
         
             try:
-                ai_message = ai_action_queue.get(timeout=0.1)
+                ai_message = ai_action_queue.get(timeout=0.5)
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
                 
                 try:
@@ -141,7 +141,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             print(f"Error in game engine process: {e}")
 
         try:
-            shoot_action = shoot_action_queue.get(timeout=0.1)
+            shoot_action = shoot_action_queue.get(timeout=0.5)
         except Exception as e:
             # print(f"Error while getting shoot action: {e}")
             continue
@@ -156,7 +156,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             player_id = shoot_action['player_id']
             mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
             try:
-                message = mqtt_subscribe_queue.get(timeout=0.1) # get the can_see from the visualiser
+                message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
                 message = json.loads(message)
                 can_see = message['detection']
                 num_of_rain = message['num_of_rain']
