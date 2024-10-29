@@ -39,12 +39,16 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
                 
                 try:
-                    message = mqtt_subscribe_queue.get(timeout=0.1) # get the can_see from the visualiser
-                    message = json.loads(message.decode())  
+                    message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
+                    message = json.loads(message)
+                    print(message)
                     can_see = message['detection']
                     num_of_rain = message['num_of_rain']
+                    print("can see: ", num_of_rain)
+                    print("num of rain: ", num_of_rain)
                 except Exception:
                     can_see = "true"
+                    print("timeout!")
 
                 if can_see == "true":
                     can_see = True
