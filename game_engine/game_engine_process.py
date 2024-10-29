@@ -13,6 +13,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
     player1_count = 0
     player2_count = 0
     start_time = time.time()
+    TIMEOUT_DURATION = 3
 
     mqtt_request_detection = {
         "topic": "visualiser/request_detection",
@@ -26,7 +27,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             num_of_rain = 0
             # got_shot = None
 
-            if (time.time() - start_time > 60):
+            if (time.time() - start_time > TIMEOUT_DURATION):
                 start_time = time.time()
                 max_count = max(player1_count, player2_count)
                 action_count = max_count * 2
