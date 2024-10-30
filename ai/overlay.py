@@ -177,7 +177,7 @@ class ActionClassifier():
     print(f"Accuracy: {100.0 * (correct_predictions)/total_predictions}%")
     print(f"No. of wrong predictions: {total_predictions - correct_predictions} out of {total_predictions}")
 
-# if __name__ == "__main__":
-#   clf = ActionClassifier()
-#   clf.perform_inference_from_json_multiple('test_all.json')
+if __name__ == "__main__":
+  clf = ActionClassifier(Queue(), Queue())
+  clf.perform_inference_from_json_multiple('ai/test_try.json')
 
