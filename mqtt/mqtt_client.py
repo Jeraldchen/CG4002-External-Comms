@@ -15,10 +15,11 @@ class MQTTClient:
         
         self.client = Client()
         self.client.on_connect = on_connect
-        self.client.connect('68.183.180.79', 1883, 60)
+        self.client.connect('68.183.180.79', 1883, 300)
         return self.client
 
     def send_message(self, topic, message):
+        print("Sending to MQTT:", message)
         message = message.encode('utf-8')
         self.client.publish(topic, message) # send the message to the visualiser
         

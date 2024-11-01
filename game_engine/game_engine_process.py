@@ -15,11 +15,6 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
     start_time = time.time()
     TIMEOUT_DURATION = 3
 
-    mqtt_request_detection = {
-        "topic": "visualiser/request_detection",
-        "request": "true"
-    }
-
     while True:
         try: # non shoot actions
             can_see = True
@@ -36,6 +31,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         
             try:
                 ai_message = ai_action_queue.get(timeout=0.5)
+                print(ai_message)
+                player_id = ai_message['player_id']
+                mqtt_request_detection = {
+                    "topic": "visualiser/request_detection",
+                    "request": "true",
+                    "player_id": player_id
+                }
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
                 
                 try:
@@ -43,6 +45,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     message = json.loads(message)
                     can_see = message['detection']
                     num_of_rain = message['num_of_rain']
+                    print(message)
                 except Exception:
                     can_see = "true"
 
@@ -51,8 +54,6 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 else:
                     can_see = False
 
-                print(ai_message)
-                player_id = ai_message['player_id']
 
                 if player_id == 1:
                     attacker = game_state.player_1
@@ -141,7 +142,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             print(f"Error in game engine process: {e}")
 
         try:
-            shoot_action = shoot_action_queue.get(timeout=0.5)
+            shoot_action = shoot_action_queue.get(timeout=0.1)
         except Exception as e:
             # print(f"Error while getting shoot action: {e}")
             continue
@@ -154,12 +155,18 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         if shoot_action: # packet T
             action = "gun"
             player_id = shoot_action['player_id']
+            mqtt_request_detection = {
+                "topic": "visualiser/request_detection",
+                "request": "true",
+                "player_id": player_id
+            }
             mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
             try:
                 message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
                 message = json.loads(message)
                 can_see = message['detection']
                 num_of_rain = message['num_of_rain']
+                print(message)
             except Exception:
                 can_see = "true"
 
@@ -182,10 +189,11 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
             continue
 
-
+        print("before", game_state.get_dict())
         game_state.perform_action(action, player_id, can_see)
+        print("action dmg", game_state.get_dict())
         attacker.rain_damage(opponent, num_of_rain, can_see)
-
+        print("after rain", game_state.get_dict())
 
         
         # if got_shot: # packet I
@@ -214,7 +222,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         # mqtt_publish_queue.put(json.dumps(ai_predicted_data)) # send the predicted game data to the visualiser first
         true_game_state = true_game_state_from_eval_server_queue.get() # get the true game state from the eval server
         true_game_state_json = json.loads(true_game_state)
-        print(true_game_state_json)
+        # print(true_game_state_json)
         game_state.player_1.set_state(true_game_state_json['p1']['bullets'], true_game_state_json['p1']['bombs'], true_game_state_json['p1']['hp'], true_game_state_json['p1']['deaths'], true_game_state_json['p1']['shields'], true_game_state_json['p1']['shield_hp']) # update the true game state for player 1
         game_state.player_2.set_state(true_game_state_json['p2']['bullets'], true_game_state_json['p2']['bombs'], true_game_state_json['p2']['hp'], true_game_state_json['p2']['deaths'], true_game_state_json['p2']['shields'], true_game_state_json['p2']['shield_hp']) # update the true game state for player 2
 
@@ -225,7 +233,9 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
             "topic": "true/data"
         }
 
-        print(game_state.get_dict())
+        # print(game_state.get_dict())
+
+        mqtt_publish_queue.put(json.dumps(true_data))
 
         if (player_id == 1):
             send_to_relay_node_queue_player1.put(json.dumps(true_data))
@@ -233,8 +243,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         elif (player_id == 2):
             send_to_relay_node_queue_player2.put(json.dumps(true_data))
             send_to_relay_node_queue_player1_dupe.put(json.dumps(true_data))
-
-        mqtt_publish_queue.put(json.dumps(true_data))
+        
         action_count += 1
         start_time = time.time()
         if (player_id == 1):

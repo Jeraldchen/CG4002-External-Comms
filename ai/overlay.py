@@ -2,13 +2,15 @@ from pynq import Overlay
 from pynq import PL
 from pynq import allocate
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import confusion_matrix
 from multiprocessing import *
 import numpy as np
 import csv
 import time
 import json
+from scipy.stats import skew
 
-INPUT_SIZE = 60
+INPUT_SIZE = 96
 
 def median(data):
   data = np.array(data) 
@@ -34,6 +36,25 @@ def zero_crossing_rate(data):
   data = np.array(data)
   return float(np.sum(np.diff(np.sign(data))) / (2 * len(data)))  # Ensure the return type is float
 
+def rms(data):
+  data = np.array(data)
+  return np.sqrt(np.mean(data ** 2))
+
+def jerk_mean(data):
+  data = np.array(data)
+  return np.mean(np.diff(data))
+
+def jerk_std(data):
+  data = np.array(data)
+  return np.std(np.diff(data))
+
+def peak_to_peak(data):
+  data = np.array(data)
+  return np.ptp(data)
+
+def autocorrelation(data):
+  data = np.array(data)
+  return np.correlate(data, data, mode='full')[len(data) - 1]
 
 class ActionClassifier():
   def __init__(self, queue1, queue2):
@@ -42,7 +63,7 @@ class ActionClassifier():
     self.all_actions = {"0": "no action", "1": "shield", "2": "bomb", "3": "reload", "4": "basket", "5": "soccer", "6": "volley", "7": "bowl", "8": "logout"}
     self.to_ai_queue = queue1
     self.ai_action_queue = queue2
-    self.ol = Overlay('ai/fresh_start_2.bit')
+    self.ol = Overlay('ai/fresh_1.bit')
     self.dma = self.ol.axi_dma_0
     self.nn = self.ol.predict_0
     self.nn.write(0x00, 0x81) # start and auto restart
@@ -62,7 +83,7 @@ class ActionClassifier():
 
     features = []
     # Iterate over each sensor's data (each row in imu_data)
-    scaling_params = np.load('ai/scaling_params_new.npy', allow_pickle=True).item()
+    scaling_params = np.load('ai/scaling_params_fresh.npy', allow_pickle=True).item()
     sensor_index = 0
 
     for sensor in sensor_data:
@@ -75,11 +96,14 @@ class ActionClassifier():
       scaled_sensor_data = (sensor - min_val) / (max_val - min_val)
       
       # Append the features for this sensor
-      features.append(median(scaled_sensor_data))
+      features.append(rms(scaled_sensor_data))
+      features.append(jerk_std(scaled_sensor_data))
+      features.append(jerk_mean(scaled_sensor_data))
       features.append(iqr(scaled_sensor_data))
       features.append(mean_first_quarter(scaled_sensor_data))
       features.append(mean_second_quarter(scaled_sensor_data))
-      features.append(zero_crossing_rate(scaled_sensor_data))
+      features.append(peak_to_peak(scaled_sensor_data))
+      features.append(autocorrelation(scaled_sensor_data))
 
     print(len(features))
 
@@ -155,6 +179,8 @@ class ActionClassifier():
     start_time = time.time()
     total_predictions = 0
     correct_predictions = 0
+    true_labels = []
+    predictions = []
     with open(file) as test_data_json:
       json_data = json.load(test_data_json)
         
@@ -164,6 +190,8 @@ class ActionClassifier():
       extracted_features = self.process_data(json_packet)
       print("extracted_features: ", extracted_features)
       predicted_output = self.infer(extracted_features)
+      true_labels.append(label)
+      predictions.append(predicted_output)
       if predicted_output == label:
         correct_predictions += 1
       total_predictions += 1
@@ -177,7 +205,10 @@ class ActionClassifier():
     print(f"Accuracy: {100.0 * (correct_predictions)/total_predictions}%")
     print(f"No. of wrong predictions: {total_predictions - correct_predictions} out of {total_predictions}")
 
+    conf_matrix = confusion_matrix(true_labels, predictions)
+    print(conf_matrix)
+
 if __name__ == "__main__":
   clf = ActionClassifier(Queue(), Queue())
-  clf.perform_inference_from_json_multiple('ai/test_try.json')
+  clf.perform_inference_from_json_multiple('ai/train.json')
 
