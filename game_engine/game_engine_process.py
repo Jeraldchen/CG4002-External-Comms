@@ -30,7 +30,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 player2_count = max_count
         
             try:
-                ai_message = ai_action_queue.get(timeout=0.5)
+                ai_message = ai_action_queue.get(timeout=0.1)
                 print(ai_message)
                 player_id = ai_message['player_id']
                 mqtt_request_detection = {
@@ -41,7 +41,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
                 
                 try:
-                    message = mqtt_subscribe_queue.get(timeout=0.1) # get the can_see from the visualiser
+                    message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
                     message = json.loads(message)
                     can_see = message['detection']
                     num_of_rain = message['num_of_rain']
