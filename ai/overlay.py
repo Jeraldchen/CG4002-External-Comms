@@ -4,13 +4,14 @@ from pynq import allocate
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import confusion_matrix
 from multiprocessing import *
+from scipy.fft import fft
 import numpy as np
 import csv
 import time
 import json
 from scipy.stats import skew
 
-INPUT_SIZE = 96
+INPUT_SIZE = 84
 
 def median(data):
   data = np.array(data) 
@@ -56,6 +57,20 @@ def autocorrelation(data):
   data = np.array(data)
   return np.correlate(data, data, mode='full')[len(data) - 1]
 
+def fft_std(data):
+  fft_values = fft(data)
+  fft_magnitude = np.abs(fft_values)
+  return np.std(fft_magnitude)
+
+def energy(data):
+  return np.sum(data ** 2) / len(data)
+
+def fft_range(data):
+  fft_values = fft(data)
+  fft_magnitude = np.abs(fft_values)
+  return np.max(fft_magnitude) - np.min(fft_magnitude)
+
+
 class ActionClassifier():
   def __init__(self, queue1, queue2):
     PL.reset()
@@ -63,7 +78,7 @@ class ActionClassifier():
     self.all_actions = {"0": "no action", "1": "shield", "2": "bomb", "3": "reload", "4": "basket", "5": "soccer", "6": "volley", "7": "bowl", "8": "logout"}
     self.to_ai_queue = queue1
     self.ai_action_queue = queue2
-    self.ol = Overlay('ai/fresh_1.bit')
+    self.ol = Overlay('ai/apana.bit')
     self.dma = self.ol.axi_dma_0
     self.nn = self.ol.predict_0
     self.nn.write(0x00, 0x81) # start and auto restart
@@ -83,7 +98,7 @@ class ActionClassifier():
 
     features = []
     # Iterate over each sensor's data (each row in imu_data)
-    scaling_params = np.load('ai/scaling_params_fresh.npy', allow_pickle=True).item()
+    scaling_params = np.load('ai/scaling_params_fresh_2.npy', allow_pickle=True).item()
     sensor_index = 0
 
     for sensor in sensor_data:
@@ -96,48 +111,25 @@ class ActionClassifier():
       scaled_sensor_data = (sensor - min_val) / (max_val - min_val)
       
       # Append the features for this sensor
-      features.append(rms(scaled_sensor_data))
+      # features.append(rms(scaled_sensor_data))
+      # features.append(jerk_std(scaled_sensor_data))
+      # features.append(jerk_mean(scaled_sensor_data))
+      # features.append(iqr(scaled_sensor_data))
+      # features.append(mean_first_quarter(scaled_sensor_data))
+      # features.append(mean_second_quarter(scaled_sensor_data))
+      # features.append(peak_to_peak(scaled_sensor_data))
+      # features.append(autocorrelation(scaled_sensor_data))
       features.append(jerk_std(scaled_sensor_data))
       features.append(jerk_mean(scaled_sensor_data))
-      features.append(iqr(scaled_sensor_data))
-      features.append(mean_first_quarter(scaled_sensor_data))
       features.append(mean_second_quarter(scaled_sensor_data))
       features.append(peak_to_peak(scaled_sensor_data))
-      features.append(autocorrelation(scaled_sensor_data))
+      features.append(fft_std(scaled_sensor_data))
+      features.append(energy(scaled_sensor_data))
+      features.append(fft_range(scaled_sensor_data))
 
     print(len(features))
 
     return features
-
-  # def process_data(self,json_packet):
-  #   imu_data = json_packet["imu_data"]
-
-  #   features = []
-  #   single_action = [[] for _ in range(12)]
-  #   # Iterate over each sensor's data (each row in imu_data)
-  #   for sensor_data in imu_data:
-  #     # print(len(sensor_data))
-  #     for i, value in enumerate(sensor_data):
-  #       single_action[i].append(value)
-  #   for sensor in single_action:
-  #     # Compute the features
-  #     sensor_iqr = iqr(sensor)
-  #     sensor_median = median(sensor)
-  #     first_quarter_mean = mean_first_quarter(sensor)
-  #     second_quarter_mean = mean_second_quarter(sensor)
-  #     zcr = zero_crossing_rate(sensor)
-
-  #     # Append the features for this sensor
-  #     # features.extend(sensor_median, sensor_iqr, first_quarter_mean, second_quarter_mean, zcr)
-  #     features.append(sensor_median)
-  #     features.append(sensor_iqr)
-  #     features.append(first_quarter_mean)
-  #     features.append(second_quarter_mean)
-  #     features.append(zcr)
-
-  #   # print(len(features))
-
-  #   return features
 
   def infer(self, data):
     for i in range(INPUT_SIZE):
