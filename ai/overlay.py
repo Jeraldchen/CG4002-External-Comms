@@ -78,7 +78,7 @@ class ActionClassifier():
     self.all_actions = {"0": "no action", "1": "shield", "2": "bomb", "3": "reload", "4": "basket", "5": "soccer", "6": "volley", "7": "bowl", "8": "logout"}
     self.to_ai_queue = queue1
     self.ai_action_queue = queue2
-    self.ol = Overlay('ai/apana.bit')
+    self.ol = Overlay('ai/apana2.bit')
     self.dma = self.ol.axi_dma_0
     self.nn = self.ol.predict_0
     self.nn.write(0x00, 0x81) # start and auto restart
@@ -98,7 +98,7 @@ class ActionClassifier():
 
     features = []
     # Iterate over each sensor's data (each row in imu_data)
-    scaling_params = np.load('ai/scaling_params_fresh_2.npy', allow_pickle=True).item()
+    scaling_params = np.load('ai/scaling_params_fresh_data.npy', allow_pickle=True).item()
     sensor_index = 0
 
     for sensor in sensor_data:
@@ -119,8 +119,15 @@ class ActionClassifier():
       # features.append(mean_second_quarter(scaled_sensor_data))
       # features.append(peak_to_peak(scaled_sensor_data))
       # features.append(autocorrelation(scaled_sensor_data))
-      features.append(jerk_std(scaled_sensor_data))
+      # features.append(jerk_std(scaled_sensor_data))
+      # features.append(jerk_mean(scaled_sensor_data))
+      # features.append(mean_second_quarter(scaled_sensor_data))
+      # features.append(peak_to_peak(scaled_sensor_data))
+      # features.append(fft_std(scaled_sensor_data))
+      # features.append(energy(scaled_sensor_data))
+      # features.append(fft_range(scaled_sensor_data))
       features.append(jerk_mean(scaled_sensor_data))
+      features.append(mean_first_quarter(scaled_sensor_data))
       features.append(mean_second_quarter(scaled_sensor_data))
       features.append(peak_to_peak(scaled_sensor_data))
       features.append(fft_std(scaled_sensor_data))
@@ -135,7 +142,7 @@ class ActionClassifier():
     for i in range(INPUT_SIZE):
       self.input_stream[i] = int(data[i] * 65536.0)
     
-    print("Input Stream: ", self.input_stream)
+    # print("Input Stream: ", self.input_stream)
     self.dma_send.transfer(self.input_stream) 
     self.dma_recv.transfer(self.output_stream)
     self.dma_send.wait()

@@ -13,10 +13,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
     player1_count = 0
     player2_count = 0
     start_time = time.time()
-    TIMEOUT_DURATION = 3
-
+    TIMEOUT_DURATION = 60
+    ACTION_COUNT = 40
+    # counter = 0
     while True:
         try: # non shoot actions
+            # print(counter)
+            # counter += 1
             can_see = True
             shoot_action = None
             num_of_rain = 0
@@ -31,29 +34,13 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
         
             try:
                 ai_message = ai_action_queue.get(timeout=0.1)
-                print(ai_message)
+                # print(ai_message)
                 player_id = ai_message['player_id']
                 mqtt_request_detection = {
                     "topic": "visualiser/request_detection",
                     "request": "true",
                     "player_id": player_id
                 }
-                mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
-                
-                try:
-                    message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
-                    message = json.loads(message)
-                    can_see = message['detection']
-                    num_of_rain = message['num_of_rain']
-                    print(message)
-                except Exception:
-                    can_see = "true"
-
-                if can_see == "true":
-                    can_see = True
-                else:
-                    can_see = False
-
 
                 if player_id == 1:
                     attacker = game_state.player_1
@@ -61,6 +48,30 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 else :
                     attacker = game_state.player_2
                     opponent = game_state.player_1 
+
+                mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
+                
+                try:
+                    message = mqtt_subscribe_queue.get(timeout=2) # get the can_see from the visualiser
+                    message = json.loads(message)
+                    can_see = message['detection']
+                    num_of_rain = message['num_of_rain']
+                    print(message)
+                except Exception:
+                    print("timeout AI side")
+                    if (player_id == 1):
+                        print("timeout player 1")
+                        send_to_relay_node_queue_player1.put(json.dumps({"action": "no_action"}))
+                        continue
+                    elif (player_id == 2):
+                        send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
+                        continue
+                    # continue
+                if can_see == "true":
+                    can_see = True
+                else:
+                    can_see = False
+                
 
                 action = ai_message['action']
 
@@ -71,7 +82,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
                     continue
                 
-                if action == "no action" or (action == "logout" and action_count < 20):
+                if action == "no action" or (action == "logout" and action_count < ACTION_COUNT):
                     if (player_id == 1):
                         send_to_relay_node_queue_player1.put(json.dumps(ai_message))
                         send_to_relay_node_queue_player2_dupe.put(json.dumps(ai_message))
@@ -160,27 +171,33 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 "request": "true",
                 "player_id": player_id
             }
+
+            if player_id == 1:
+                attacker = game_state.player_1
+                opponent = game_state.player_2
+            else :
+                attacker = game_state.player_2
+                opponent = game_state.player_1
+
             mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
             try:
-                message = mqtt_subscribe_queue.get(timeout=0.5) # get the can_see from the visualiser
+                message = mqtt_subscribe_queue.get(timeout=2) # get the can_see from the visualiser
                 message = json.loads(message)
                 can_see = message['detection']
                 num_of_rain = message['num_of_rain']
                 print(message)
             except Exception:
-                can_see = "true"
+                if (player_id == 1):
+                    send_to_relay_node_queue_player1.put(json.dumps({"action": "no_action"}))
+                    continue
+                elif (player_id == 2):
+                    send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
+                    continue
 
             if can_see == "true":
                 can_see = True
             else:
                 can_see = False
-                
-            if player_id == 1:
-                    attacker = game_state.player_1
-                    opponent = game_state.player_2
-            else :
-                attacker = game_state.player_2
-                opponent = game_state.player_1
 
         if (player_id == 1 and player1_count > player2_count):
             send_to_relay_node_queue_player1.put(json.dumps({"action": "no_action"}))
