@@ -11,7 +11,7 @@ import time
 import json
 from scipy.stats import skew
 
-INPUT_SIZE = 84
+INPUT_SIZE = 96
 
 def median(data):
   data = np.array(data) 
@@ -78,7 +78,7 @@ class ActionClassifier():
     self.all_actions = {"0": "no action", "1": "shield", "2": "bomb", "3": "reload", "4": "basket", "5": "soccer", "6": "volley", "7": "bowl", "8": "logout"}
     self.to_ai_queue = queue1
     self.ai_action_queue = queue2
-    self.ol = Overlay('ai/apana2.bit')
+    self.ol = Overlay('ai/apana3.bit')
     self.dma = self.ol.axi_dma_0
     self.nn = self.ol.predict_0
     self.nn.write(0x00, 0x81) # start and auto restart
@@ -91,6 +91,17 @@ class ActionClassifier():
     load_end = time.time()
     print(f"Loading time: {(load_end - load_start):.4f}s")
 
+  def print_dma_channel_status(self, channel, name='dma'):
+    print(f'{name}.running =', channel.running)
+    print(f'{name}.idle =', channel.idle)
+    print(f'{name}.error =', channel.error)
+    print(f'status =', hex(channel._mmio.read(channel._offset + 4)))
+    
+  def print_dma_channels_status(self):
+    self.print_dma_channel_status(self.dma_recv, name='dma_rec')
+    print()
+    self.print_dma_channel_status(self.dma_send, name='dma_send')
+
   def process_data(self,json_packet):
     imu_data = np.array(json_packet["imu_data"])
     sensor_data = imu_data.T
@@ -98,7 +109,7 @@ class ActionClassifier():
 
     features = []
     # Iterate over each sensor's data (each row in imu_data)
-    scaling_params = np.load('ai/scaling_params_fresh_data.npy', allow_pickle=True).item()
+    scaling_params = np.load('ai/scaling_params_fresh_try.npy', allow_pickle=True).item()
     sensor_index = 0
 
     for sensor in sensor_data:
@@ -127,6 +138,7 @@ class ActionClassifier():
       # features.append(energy(scaled_sensor_data))
       # features.append(fft_range(scaled_sensor_data))
       features.append(jerk_mean(scaled_sensor_data))
+      features.append(iqr(scaled_sensor_data))
       features.append(mean_first_quarter(scaled_sensor_data))
       features.append(mean_second_quarter(scaled_sensor_data))
       features.append(peak_to_peak(scaled_sensor_data))
@@ -146,7 +158,9 @@ class ActionClassifier():
     self.dma_send.transfer(self.input_stream) 
     self.dma_recv.transfer(self.output_stream)
     self.dma_send.wait()
+    self.print_dma_channels_status()
     self.dma_recv.wait()
+    self.print_dma_channels_status()
     print("Output stream:", self.output_stream)
     gesture = self.output_stream[0]
     return gesture

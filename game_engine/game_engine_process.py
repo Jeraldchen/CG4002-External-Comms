@@ -13,7 +13,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
     player1_count = 0
     player2_count = 0
     start_time = time.time()
-    TIMEOUT_DURATION = 60
+    TIMEOUT_DURATION = 3
     ACTION_COUNT = 40
     # counter = 0
     while True:
@@ -49,6 +49,9 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     attacker = game_state.player_2
                     opponent = game_state.player_1 
 
+                while not mqtt_publish_queue.empty():
+                    mqtt_publish_queue.get_nowait()
+
                 mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
                 
                 try:
@@ -66,6 +69,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                     elif (player_id == 2):
                         send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
                         continue
+                    # pass
                     # continue
                 if can_see == "true":
                     can_see = True
@@ -179,6 +183,8 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 attacker = game_state.player_2
                 opponent = game_state.player_1
 
+            while not mqtt_publish_queue.empty():
+                mqtt_publish_queue.get_nowait()
             mqtt_publish_queue.put(json.dumps(mqtt_request_detection)) # request the visualiser to detect the players
             try:
                 message = mqtt_subscribe_queue.get(timeout=2) # get the can_see from the visualiser
@@ -193,6 +199,7 @@ def game_engine_process(mqtt_publish_queue: Queue, mqtt_subscribe_queue: Queue, 
                 elif (player_id == 2):
                     send_to_relay_node_queue_player2.put(json.dumps({"action": "no_action"}))
                     continue
+                # pass
 
             if can_see == "true":
                 can_see = True
